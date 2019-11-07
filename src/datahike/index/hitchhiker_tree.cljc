@@ -31,8 +31,13 @@
     (if (nil? key2)
       0 -1)))
 
-(def ^:const br 300)
-(def ^:const br-sqrt (long (Math/sqrt br)))
+;(def ^:const br 300)
+;(def ^:const br-sqrt (long (Math/sqrt br)))
+
+; temp bump this up to do real AWS test
+; maybe configure this?
+(def ^:const br 1024)
+(def ^:const br-sqrt 32)
 
 (defn- index-type->datom-fn [index-type]
   (case index-type
