@@ -1,10 +1,11 @@
 (ns datahike.store
-  (:require [hitchhiker.konserve :as kons]
+  (:require [hitchhiker.tree.bootstrap.konserve :as kons]
             [konserve.filestore :as fs]
             [konserve-leveldb.core :as kl]
             [konserve-pg.core :as kp]
             [konserve.memory :as mem]
-            [superv.async :refer [<?? S]]))
+            [superv.async :refer [<?? S]]
+            [hitchhiker.tree.bootstrap.konserve :as kons]))
 
 (defmulti empty-store
           "Creates an empty store"
@@ -113,3 +114,35 @@
 (defmethod scheme->index :level [_]
   :datahike.index/hitchhiker-tree)
 
+;; ddb+s3
+
+#?(:clj
+   (do
+    (def ^:dynamic *ddb-client* nil)
+    (def ^:dynamic *s3-client* nil)
+
+    (defn merge-clients
+      [config]
+      (merge config
+             (when *ddb-client* {:ddb-client *ddb-client*})
+             (when *s3-client* {:s3-client *s3-client*})))
+
+    (defmethod empty-store :ddb+s3
+      [config]
+      (let [ctor (requiring-resolve 'datahike-ddb-s3.core/empty-store)]
+        (kons/add-hitchhiker-tree-handlers
+          (<?? S (ctor (merge-clients config))))))
+
+    (defmethod delete-store :ddb+s3
+      [config]
+      (let [f (requiring-resolve 'datahike-ddb-s3.core/delete-store)]
+        (<?? S (f (merge-clients config)))))
+
+    (defmethod connect-store :ddb+s3
+      [config]
+      (let [f (requiring-resolve 'datahike-ddb-s3.core/connect-store)]
+        (<?? S (f (merge-clients config)))))
+
+    (defmethod scheme->index :ddb+s3
+      [_]
+      :datahike.index/hitchhiker-tree)))

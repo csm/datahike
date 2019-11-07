@@ -1,7 +1,7 @@
 (ns datahike.index
   (:require [datahike.index.hitchhiker-tree :as dih]
             [datahike.index.persistent-set :as dip])
-  #?(:clj (:import [hitchhiker.tree.core DataNode IndexNode]
+  #?(:clj (:import [hitchhiker.tree DataNode IndexNode]
                    [me.tonsky.persistent_sorted_set PersistentSortedSet])))
 
 ;; TODO add doc to each function
@@ -92,6 +92,9 @@
 (defmethod empty-index ::hitchhiker-tree [_ _]
   (dih/empty-tree))
 
+(defmethod empty-index ::large-hitchhiker-tree [_ _]
+  (dih/large-empty-tree))
+
 (defmethod empty-index ::persistent-set [_ index-type]
   (dip/empty-set index-type))
 
@@ -102,6 +105,9 @@
   (fn [index datoms indexed index-type] index))
 
 (defmethod init-index ::hitchhiker-tree [_ datoms _ index-type]
+  (dih/init-tree datoms index-type))
+
+(defmethod init-index ::large-hitchhiker-tree [_ datoms _ index-type]
   (dih/init-tree datoms index-type))
 
 (defmethod init-index ::persistent-set [_ datoms indexed index-type]

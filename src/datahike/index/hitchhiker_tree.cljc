@@ -1,31 +1,33 @@
 (ns datahike.index.hitchhiker-tree
-  (:require [hitchhiker.tree.core :as hc :refer [<??]]
+  (:require [hitchhiker.tree :as hc]
+            [hitchhiker.tree.key-compare :as kc]
             [hitchhiker.tree.messaging :as hmsg]
+            [hitchhiker.tree.utils.async :as ha :refer [<??]]
             [datahike.constants :refer [e0 tx0 emax txmax]]
             [datahike.datom :as dd])
   #?(:clj (:import [clojure.lang AMapEntry]
                    [datahike.datom Datom])))
 
-(extend-protocol hc/IKeyCompare
+(extend-protocol kc/IKeyCompare
   clojure.lang.PersistentVector
-  (compare [key1 key2]
+  (-compare [key1 key2]
     (if-not (= (class key2) clojure.lang.PersistentVector)
       -1                                                    ;; HACK for nil
       (let [[a b c d] key1
             [e f g h] key2]
         (dd/combine-cmp
-          (hc/compare a e)
-          (hc/compare b f)
-          (hc/compare c g)
-          (hc/compare d h)))))
+          (kc/-compare a e)
+          (kc/-compare b f)
+          (kc/-compare c g)
+          (kc/-compare d h)))))
   java.lang.String
-  (compare [key1 key2]
+  (-compare [key1 key2]
     (compare key1 key2))
   clojure.lang.Keyword
-  (compare [key1 key2]
+  (-compare [key1 key2]
     (compare key1 key2))
   nil
-  (compare [key1 key2]
+  (-compare [key1 key2]
     (if (nil? key2)
       0 -1)))
 
@@ -65,22 +67,22 @@
                            (let [key (.key kv)
                                  [i j k l] key
                                  new (not (cond (and e f g h)
-                                                (or (> (hc/compare i e) 0)
-                                                    (> (hc/compare j f) 0)
-                                                    (> (hc/compare k g) 0)
-                                                    (> (hc/compare l h) 0))
+                                                (or (> (kc/-compare i e) 0)
+                                                    (> (kc/-compare j f) 0)
+                                                    (> (kc/-compare k g) 0)
+                                                    (> (kc/-compare l h) 0))
 
                                                 (and e f g)
-                                                (or (> (hc/compare i e) 0)
-                                                    (> (hc/compare j f) 0)
-                                                    (> (hc/compare k g) 0))
+                                                (or (> (kc/-compare i e) 0)
+                                                    (> (kc/-compare j f) 0)
+                                                    (> (kc/-compare k g) 0))
 
                                                 (and e f)
-                                                (or (> (hc/compare i e) 0)
-                                                    (> (hc/compare j f) 0))
+                                                (or (> (kc/-compare i e) 0)
+                                                    (> (kc/-compare j f) 0))
 
                                                 e
-                                                (> (hc/compare i e) 0)
+                                                (> (kc/-compare i e) 0)
 
                                                 :else false))]
                              new)))
@@ -109,6 +111,10 @@
   []
   (<?? (hc/b-tree (hc/->Config br-sqrt br (- br br-sqrt)))))
 
+(defn large-empty-tree
+  []
+  (<?? (hc/b-tree (hc/->Config 32 1024 1024))))
+
 (defn -insert [tree ^Datom datom index-type]
   (hmsg/insert tree (datom->node datom index-type) nil))
 
@@ -116,7 +122,7 @@
   "Create tree with datoms"
   [datoms index-type]
   (<??
-   (hc/reduce<
+   (ha/reduce<
     (fn [tree datom]
       (-insert tree datom index-type))
     (empty-tree)
@@ -126,7 +132,7 @@
   (<?? (hmsg/delete tree (datom->node datom index-type))))
 
 (defn -flush [tree backend]
-  (:tree (hc/<?? (hc/flush-tree-without-root tree backend))))
+  (:tree (<?? (hc/flush-tree-without-root tree backend))))
 
 (def -persistent! identity)
 
