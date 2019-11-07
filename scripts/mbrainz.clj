@@ -14,6 +14,7 @@
                (:table-name this) "\" :bucket-name \"" (:bucket-name this) "\"}")))
 
 (.setLevel (org.slf4j.LoggerFactory/getLogger ch.qos.logback.classic.Logger/ROOT_LOGGER_NAME) ch.qos.logback.classic.Level/INFO)
+(.setLevel (org.slf4j.LoggerFactory/getLogger "datahike-ddb-s3.core") ch.qos.logback.classic.Level/INFO)
 
 (require '[cognitect.aws.client.api :as aws])
 
@@ -370,16 +371,17 @@
 (transact* (get mbrainz-txns (first txns)))
 (transact* (get mbrainz-txns (second txns)))
 (transact* (get mbrainz-txns (nth txns 2)))
-(transact* (get mbrainz-txns (nth txns 3)))
+(time (transact* (get mbrainz-txns (nth txns 3))))
 
-(def len (count txns))
-(def current (atom 0))
+(def current (atom 4))
 (def running (atom true))
 
+(require '[clojure.core.async :as async])
 (async/thread
-  (loop [items (drop 4 (map-indexed vector txns))]
-    (when @running
-      (when-let [[i t] (first items)]
-        (reset! current i)
-        (transact* (get mbrainz-txns t))
-        (recur (rest items))))))
+  (time
+    (loop [items (drop 4 (map-indexed vector txns))]
+      (when @running
+        (when-let [[i t] (first items)]
+          (reset! current i)
+          (time (transact* (get mbrainz-txns t)))
+          (recur (rest items)))))))

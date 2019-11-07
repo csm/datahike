@@ -9,7 +9,8 @@
             [superv.async :refer [<?? S]]
             [datahike.config :as dc]
             [clojure.spec.alpha :as s]
-            [clojure.core.cache :as cache])
+            [clojure.core.cache :as cache]
+            [clojure.tools.logging :as log])
   (:import [java.net URI]))
 
 (s/def ::connection #(instance? clojure.lang.Atom %))
@@ -23,22 +24,45 @@
   [connection tx-data]
   (transact! connection {:tx-data tx-data}))
 
+(defn- ms
+  [begin]
+  (let [end (System/nanoTime)]
+    (-> (- end begin)
+        (double)
+        (/ 1000000.0))))
+
 (defmethod transact! clojure.lang.PersistentArrayMap
   [connection {:keys [tx-data]}]
   {:pre [(d/conn? connection)]}
   (future
+    (log/info :task ::transact! :phase :begin)
     (locking connection
-      (let [{:keys [db-after] :as tx-report} @(d/transact connection tx-data)
+      (let [begin (System/nanoTime)
+            {:keys [db-after] :as tx-report} @(d/transact connection tx-data)
+            _ (log/info :task ::transact! :phase :tx-done :ms (ms begin))
             {:keys [eavt aevt avet temporal-eavt temporal-aevt temporal-avet schema rschema config max-tx]} db-after
             store (:store @connection)
             backend (kons/->KonserveBackend store)
+            begin (System/nanoTime)
             eavt-flushed (di/-flush eavt backend)
+            _ (log/info :task ::transact! :phase :flushed-eavt :ms (ms begin))
+            begin (System/nanoTime)
             aevt-flushed (di/-flush aevt backend)
+            _ (log/info :task ::transact! :phase :flushed-aevt :ms (ms begin))
+            begin (System/nanoTime)
             avet-flushed (di/-flush avet backend)
+            _ (log/info :task ::transact! :phase :flushed-avet :ms (ms begin))
             temporal-index? (:temporal-index config)
+            begin (System/nanoTime)
             temporal-eavt-flushed (when temporal-index? (di/-flush temporal-eavt backend))
+            _ (log/info :task ::transact! :phase :flushed-temporal-eavt :ms (ms begin))
+            begin (System/nanoTime)
             temporal-aevt-flushed (when temporal-index? (di/-flush temporal-aevt backend))
-            temporal-avet-flushed (when temporal-index? (di/-flush temporal-avet backend))]
+            _ (log/info :task ::transact! :phase :flushed-temporal-aevt :ms (ms begin))
+            begin (System/nanoTime)
+            temporal-avet-flushed (when temporal-index? (di/-flush temporal-avet backend))
+            _ (log/info :task ::transact! :phase :flushed-temporal-avet :ms (ms begin))
+            begin (System/nanoTime)]
         (<?? S (k/assoc-in store [:db]
                            (merge
                             {:schema   schema
@@ -52,6 +76,7 @@
                               {:temporal-eavt-key temporal-eavt-flushed
                                :temporal-aevt-key temporal-aevt-flushed
                                :temporal-avet-key temporal-avet-flushed}))))
+        (log/debug :task ::transact! :phase :wrote-roots :ms (ms begin))
         (reset! connection (assoc db-after
                              :eavt eavt-flushed
                              :aevt aevt-flushed

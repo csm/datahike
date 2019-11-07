@@ -4,7 +4,8 @@
             [hitchhiker.tree.messaging :as hmsg]
             [hitchhiker.tree.utils.async :as ha :refer [<??]]
             [datahike.constants :refer [e0 tx0 emax txmax]]
-            [datahike.datom :as dd])
+            [datahike.datom :as dd]
+            [hasch.core :as h])
   #?(:clj (:import [clojure.lang AMapEntry]
                    [datahike.datom Datom])))
 
@@ -119,6 +120,10 @@
 (defn large-empty-tree
   []
   (<?? (hc/b-tree (hc/->Config 32 1024 1024))))
+
+(defn insert* [tree datoms index-type]
+  (let [msgs (map #(hmsg/->InsertOp (assoc (datom->node % index-type) :tag (h/uuid)) nil) datoms)]
+    (hmsg/enqueue tree msgs)))
 
 (defn -insert [tree ^Datom datom index-type]
   (hmsg/insert tree (datom->node datom index-type) nil))
