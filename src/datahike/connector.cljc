@@ -10,7 +10,10 @@
             [datahike.config :as dc]
             [clojure.spec.alpha :as s]
             [clojure.core.cache :as cache]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [hitchhiker.tree :as hc]
+            [hitchhiker.tree.utils.async :as ha]
+            [hitchhiker.tree.node :as n])
   (:import [java.net URI]))
 
 (s/def ::connection #(instance? clojure.lang.Atom %))
@@ -44,23 +47,23 @@
             store (:store @connection)
             backend (kons/->KonserveBackend store)
             begin (System/nanoTime)
-            eavt-flushed (di/-flush eavt backend)
+            eavt-flushed (di/-flush (assoc eavt :root-node-id :eavt) backend)
             _ (log/info :task ::transact! :phase :flushed-eavt :ms (ms begin))
             begin (System/nanoTime)
-            aevt-flushed (di/-flush aevt backend)
+            aevt-flushed (di/-flush (assoc aevt :root-node-id :aevt) backend)
             _ (log/info :task ::transact! :phase :flushed-aevt :ms (ms begin))
             begin (System/nanoTime)
-            avet-flushed (di/-flush avet backend)
+            avet-flushed (di/-flush (assoc avet :root-node-id :avet) backend)
             _ (log/info :task ::transact! :phase :flushed-avet :ms (ms begin))
             temporal-index? (:temporal-index config)
             begin (System/nanoTime)
-            temporal-eavt-flushed (when temporal-index? (di/-flush temporal-eavt backend))
+            temporal-eavt-flushed (when temporal-index? (di/-flush (assoc temporal-eavt :root-node-id :temporal-eavt) backend))
             _ (log/info :task ::transact! :phase :flushed-temporal-eavt :ms (ms begin))
             begin (System/nanoTime)
-            temporal-aevt-flushed (when temporal-index? (di/-flush temporal-aevt backend))
+            temporal-aevt-flushed (when temporal-index? (di/-flush (assoc temporal-aevt :root-node-id :temporal-aevt) backend))
             _ (log/info :task ::transact! :phase :flushed-temporal-aevt :ms (ms begin))
             begin (System/nanoTime)
-            temporal-avet-flushed (when temporal-index? (di/-flush temporal-avet backend))
+            temporal-avet-flushed (when temporal-index? (di/-flush (assoc temporal-avet :root-node-id :temporal-avet) backend))
             _ (log/info :task ::transact! :phase :flushed-temporal-avet :ms (ms begin))
             begin (System/nanoTime)]
         (<?? S (k/assoc-in store [:db]
@@ -100,6 +103,13 @@
   (-create-database [config opts])
   (delete-database [config])
   (database-exists? [config]))
+
+(defn- load-ops-buffer
+  "Load the op-buf for a node in an index."
+  [tree store index]
+  (if (hc/index-node? tree)
+    (assoc tree :op-buf (ha/<?? (n/-resolve-chan (kons/->KonserveOpsAddr (kons/->KonserveBackend store) index))))
+    tree))
 
 (extend-protocol IConfiguration
   String
@@ -145,6 +155,12 @@
               (throw (ex-info "Database does not exist." {:type :db-does-not-exist
                                                           :config config})))
           {:keys [eavt-key aevt-key avet-key temporal-eavt-key temporal-aevt-key temporal-avet-key schema rschema config max-tx]} stored-db
+          eavt-key (load-ops-buffer eavt-key store :eavt)
+          aevt-key (load-ops-buffer aevt-key store :aevt)
+          avet-key (load-ops-buffer avet-key store :avet)
+          temporal-eavt-key (load-ops-buffer temporal-eavt-key store :temporal-eavt)
+          temporal-aevt-key (load-ops-buffer temporal-aevt-key store :temporal-aevt)
+          temporal-avet-key (load-ops-buffer temporal-avet-key store :temporal-avet)
           empty (db/empty-db nil :datahike.index/hitchhiker-tree :config config)]
       (d/conn-from-db
        (assoc empty

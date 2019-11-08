@@ -125,8 +125,13 @@
   (let [msgs (map #(hmsg/->InsertOp (assoc (datom->node % index-type) :tag (h/uuid)) nil) datoms)]
     (hmsg/enqueue tree msgs)))
 
+; always return a index node, so our roots are always index nodes
+; this is hacky, maybe find a better way to do this
 (defn -insert [tree ^Datom datom index-type]
-  (hmsg/insert tree (datom->node datom index-type) nil))
+  (let [res (hmsg/insert tree (datom->node datom index-type) nil)]
+    (if (hc/index-node? res)
+      res
+      (hc/index-node [res] [] (:cfg res)))))
 
 (defn init-tree
   "Create tree with datoms"
