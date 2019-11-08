@@ -2,7 +2,6 @@
 
 (import '[com.amazonaws.services.dynamodbv2.local.server DynamoDBProxyServer LocalDynamoDBServerHandler LocalDynamoDBRequestHandler])
 
-(require '[clojure.java.io :as io])
 (defn start-dynamodb-local
   []
   (let [ddb-handler (LocalDynamoDBRequestHandler. 0 true nil false)
@@ -15,7 +14,6 @@
     {:server server
      :port port}))
 
-(require '[clojure.core.async :as async])
 (require 's4.core)
 
 (def s4 (s4.core/make-server! {}))
@@ -66,6 +64,7 @@
 
 (d/q '[:find ?n ?v :in $ :where [?e :test/name ?n] [?e :test/value ?v]] (d/db conn))
 
+(.setLevel (org.slf4j.LoggerFactory/getLogger "datahike-ddb-s3.core") ch.qos.logback.classic.Level/INFO)
 (dotimes [i 600]
   (prn (d/transact conn {:tx-data [{:db/id "x"
                                     :test/name (str "test" i)

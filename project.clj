@@ -11,6 +11,7 @@
                  [org.clojure/tools.reader "1.3.2"]
                  [com.github.csm/hitchhiker-tree "0.1.5-alpha1"]
                  [io.replikativ/superv.async "0.2.9"]
+                 [io.replikativ/konserve "0.5.1"]
                  [io.replikativ/konserve-leveldb "0.1.2"]
                  [io.lambdaforge/datalog-parser "0.1.0"]
                  [com.github.csm/konserve-ddb-s3 "0.1.1-SNAPSHOT"]]

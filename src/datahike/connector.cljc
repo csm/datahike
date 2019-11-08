@@ -107,9 +107,12 @@
 (defn- load-ops-buffer
   "Load the op-buf for a node in an index."
   [tree store index]
-  (if (hc/index-node? tree)
-    (assoc tree :op-buf (ha/<?? (n/-resolve-chan (kons/->KonserveOpsAddr (kons/->KonserveBackend store) index))))
-    tree))
+  ;(log/debug "->> load-ops-buffer" index)
+  (let [result (if (hc/index-node? tree)
+                 (assoc tree :op-buf (ha/<?? (n/-resolve-chan (kons/->KonserveOpsAddr store index))))
+                 tree)]
+    ;(log/debug "<<- load-ops-buffer" index)
+    result))
 
 (extend-protocol IConfiguration
   String
