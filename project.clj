@@ -9,7 +9,7 @@
                  [org.clojars.mihaelkonjevic/konserve-pg "0.1.2"]
                  [persistent-sorted-set     "0.1.2"]
                  [org.clojure/tools.reader "1.3.2"]
-                 [com.github.csm/hitchhiker-tree "0.1.5-alpha1"]
+                 [io.replikativ/hitchhiker-tree "0.1.5-SNAPSHOT"]
                  [io.replikativ/superv.async "0.2.9"]
                  [io.replikativ/konserve "0.5.1"]
                  [io.replikativ/konserve-leveldb "0.1.2"]

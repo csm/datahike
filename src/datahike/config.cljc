@@ -1,5 +1,6 @@
 (ns datahike.config
-  (:require [clojure.spec.alpha :as s])
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as string])
   (:import [java.net URI]))
 
 (defn parse-uri [uri]
@@ -40,14 +41,15 @@
   [{:keys [uri] :as config}]
   (let [sub-uri (URI. (.getSchemeSpecificPart (URI. uri)))
         region (.getHost sub-uri)
-        [table bucket & etc] (->> (clojure.string/split (.getPath sub-uri) #"/")
-                                  (remove empty?))]
+        [table bucket database & etc] (->> (clojure.string/split (.getPath sub-uri) #"/")
+                                           (remove string/blank?))]
     (when (or (nil? region) (nil? table) (nil? bucket) (not-empty etc))
       (throw (ex-info "URI does not conform to ddb+s3 scheme" {:uri uri})))
     (assoc config
       :region region
       :table table
-      :bucket bucket)))
+      :bucket bucket
+      :database (or database :datahike))))
 
 (defmethod do-uri->config :default
   [{:keys [uri] :as config}]

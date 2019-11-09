@@ -5,7 +5,8 @@
             [konserve-pg.core :as kp]
             [konserve.memory :as mem]
             [superv.async :refer [<?? S]]
-            [hitchhiker.tree.bootstrap.konserve :as kons]))
+            [hitchhiker.tree.bootstrap.konserve :as kons])
+  (:import [java.io Closeable]))
 
 (defmulti empty-store
           "Creates an empty store"
@@ -129,19 +130,23 @@
 
     (defmethod empty-store :ddb+s3
       [config]
-      (let [ctor (requiring-resolve 'datahike-ddb-s3.core/empty-store)]
+      (let [ctor (requiring-resolve 'konserve-ddb-s3.core/empty-store)]
         (kons/add-hitchhiker-tree-handlers
           (<?? S (ctor (merge-clients config))))))
 
     (defmethod delete-store :ddb+s3
       [config]
-      (let [f (requiring-resolve 'datahike-ddb-s3.core/delete-store)]
+      (let [f (requiring-resolve 'konserve-ddb-s3.core/delete-store)]
         (<?? S (f (merge-clients config)))))
 
     (defmethod connect-store :ddb+s3
       [config]
-      (let [f (requiring-resolve 'datahike-ddb-s3.core/connect-store)]
+      (let [f (requiring-resolve 'konserve-ddb-s3.core/connect-store)]
         (<?? S (f (merge-clients config)))))
+
+    (defmethod release-store :ddb+s3
+      [_ store]
+      (.close ^Closeable store))
 
     (defmethod scheme->index :ddb+s3
       [_]

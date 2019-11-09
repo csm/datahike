@@ -368,9 +368,9 @@
 (def mbrainz-txns (group-by :tx mbrainz-dump))
 (def txns (sort (keys mbrainz-txns)))
 
-(transact* (get mbrainz-txns (first txns)))
-(transact* (get mbrainz-txns (second txns)))
-(transact* (get mbrainz-txns (nth txns 2)))
+(time (transact* (get mbrainz-txns (first txns))))
+(time (transact* (get mbrainz-txns (second txns))))
+(time (transact* (get mbrainz-txns (nth txns 2))))
 (time (transact* (get mbrainz-txns (nth txns 3))))
 
 (def current (atom 4))

@@ -110,16 +110,12 @@
    #(apply
      (index-type->datom-fn index-type)
      (first %))
-   (hc/lookup-fwd-iter tree [])))
+   (hmsg/lookup-fwd-iter tree [])))
 
 (defn empty-tree
   "Create empty hichthiker tree"
   []
-  (<?? (hc/b-tree (hc/->Config br-sqrt br (- br br-sqrt)))))
-
-(defn large-empty-tree
-  []
-  (<?? (hc/b-tree (hc/->Config 32 1024 1024))))
+  (<?? (hc/b-tree (hc/->Config br-sqrt br (* 2 br-sqrt)))))
 
 (defn insert* [tree datoms index-type]
   (let [msgs (map #(hmsg/->InsertOp (assoc (datom->node % index-type) :tag (h/uuid)) nil) datoms)]

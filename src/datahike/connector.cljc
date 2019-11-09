@@ -104,16 +104,6 @@
   (delete-database [config])
   (database-exists? [config]))
 
-(defn- load-ops-buffer
-  "Load the op-buf for a node in an index."
-  [tree store index]
-  ;(log/debug "->> load-ops-buffer" index)
-  (let [result (if (hc/index-node? tree)
-                 (assoc tree :op-buf (ha/<?? (n/-resolve-chan (kons/->KonserveOpsAddr store index))))
-                 tree)]
-    ;(log/debug "<<- load-ops-buffer" index)
-    result))
-
 (extend-protocol IConfiguration
   String
   (connect [uri]
@@ -158,12 +148,6 @@
               (throw (ex-info "Database does not exist." {:type :db-does-not-exist
                                                           :config config})))
           {:keys [eavt-key aevt-key avet-key temporal-eavt-key temporal-aevt-key temporal-avet-key schema rschema config max-tx]} stored-db
-          eavt-key (load-ops-buffer eavt-key store :eavt)
-          aevt-key (load-ops-buffer aevt-key store :aevt)
-          avet-key (load-ops-buffer avet-key store :avet)
-          temporal-eavt-key (load-ops-buffer temporal-eavt-key store :temporal-eavt)
-          temporal-aevt-key (load-ops-buffer temporal-aevt-key store :temporal-aevt)
-          temporal-avet-key (load-ops-buffer temporal-avet-key store :temporal-avet)
           empty (db/empty-db nil :datahike.index/hitchhiker-tree :config config)]
       (d/conn-from-db
        (assoc empty

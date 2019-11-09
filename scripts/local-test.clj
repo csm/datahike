@@ -23,7 +23,7 @@
 (def secret-key "SECRET")
 (swap! (-> @s4 :auth-store :access-keys) assoc access-key secret-key)
 
-(require '[datahike.api :as d])
+(require '[datahike.api :as d] :reload)
 (require '[cognitect.aws.credentials :as creds])
 (require '[cognitect.aws.client.api :as aws])
 
@@ -40,7 +40,7 @@
                                                       :hostname "localhost"
                                                       :port (.getPort (:bind-address @s4))}}))
 
-(require 'datahike-ddb-s3.core)
+(require 'konserve-ddb-s3.core)
 
 (binding [datahike.store/*ddb-client* local-ddb-client
           datahike.store/*s3-client* local-s3-client]
@@ -66,6 +66,6 @@
 
 (.setLevel (org.slf4j.LoggerFactory/getLogger "datahike-ddb-s3.core") ch.qos.logback.classic.Level/INFO)
 (dotimes [i 600]
-  (prn (d/transact conn {:tx-data [{:db/id "x"
-                                    :test/name (str "test" i)
-                                    :test/value (str "test" i)}]})))
+  (d/transact conn {:tx-data [{:db/id "x"
+                               :test/name (str "test-2-" i)
+                               :test/value (str "test-2-" i)}]}))
