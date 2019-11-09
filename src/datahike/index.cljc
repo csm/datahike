@@ -95,7 +95,6 @@
 (defmethod empty-index ::persistent-set [_ index-type]
   (dip/empty-set index-type))
 
-
 (defmulti init-index
   "Initialize index with datoms"
   {:arglists '([index datoms indexed index-type])}

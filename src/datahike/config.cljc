@@ -49,6 +49,7 @@
       :region region
       :table table
       :bucket bucket
+      :consistent-key #{:db}
       :database (or database :datahike))))
 
 (defmethod do-uri->config :default

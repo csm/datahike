@@ -6,24 +6,25 @@
   [this w]
   (.write ^java.io.Writer w "#datahike.db.DB{}"))
 
-(require 'datahike-ddb-s3.core)
-(defmethod print-method datahike_ddb_s3.core.DynamoDB+S3Store
+(require 'konserve-ddb-s3.core)
+(defmethod print-method konserve_ddb_s3.core.DDB+S3Store
   [this w]
   (.write ^java.io.Writer w
           (str "#datahike-ddb-s3.core.DynamoDB+S3Store{:table-name \""
                (:table-name this) "\" :bucket-name \"" (:bucket-name this) "\"}")))
 
 (.setLevel (org.slf4j.LoggerFactory/getLogger ch.qos.logback.classic.Logger/ROOT_LOGGER_NAME) ch.qos.logback.classic.Level/INFO)
-(.setLevel (org.slf4j.LoggerFactory/getLogger "datahike-ddb-s3.core") ch.qos.logback.classic.Level/INFO)
+(.setLevel (org.slf4j.LoggerFactory/getLogger "konserve-ddb-s3.core") ch.qos.logback.classic.Level/DEBUG)
+(.setLevel (org.slf4j.LoggerFactory/getLogger "datahike.connector") ch.qos.logback.classic.Level/DEBUG)
 
 (require '[cognitect.aws.client.api :as aws])
 
 (def ddb-client (aws/client {:api :dynamodb :region "us-west-2"}))
 (def s3-client (aws/client {:api :s3 :region "us-west-2"}))
 
-(d/create-database "datahike:ddb+s3://us-west-2/csm-datahike-test/csm-datahike-test")
+(d/create-database "datahike:ddb+s3://us-west-2/csm-datahike-test/csm-datahike-test/mbrainz")
 
-(def conn (d/connect "datahike:ddb+s3://us-west-2/csm-datahike-test/csm-datahike-test"))
+(def conn (d/connect "datahike:ddb+s3://us-west-2/csm-datahike-test/csm-datahike-test/mbrainz"))
 
 (def schema
   [{:db/ident :country/name
