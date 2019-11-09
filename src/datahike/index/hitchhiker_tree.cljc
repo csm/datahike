@@ -32,13 +32,13 @@
     (if (nil? key2)
       0 -1)))
 
-;(def ^:const br 300)
-;(def ^:const br-sqrt (long (Math/sqrt br)))
+(def ^:const br 300)
+(def ^:const br-sqrt (long (Math/sqrt br)))
 
 ; temp bump this up to do real AWS test
 ; maybe configure this?
-(def ^:const br 1024)
-(def ^:const br-sqrt 32)
+;(def ^:const br 1024)
+;(def ^:const br-sqrt 32)
 
 (defn- index-type->datom-fn [index-type]
   (case index-type
@@ -115,7 +115,7 @@
 (defn empty-tree
   "Create empty hichthiker tree"
   []
-  (<?? (hc/b-tree (hc/->Config br-sqrt br (* 2 br-sqrt)))))
+  (<?? (hc/b-tree (hc/->Config br-sqrt br br))))
 
 (defn insert* [tree datoms index-type]
   (let [msgs (map #(hmsg/->InsertOp (assoc (datom->node % index-type) :tag (h/uuid)) nil) datoms)]
