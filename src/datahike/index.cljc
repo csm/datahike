@@ -92,9 +92,6 @@
 (defmethod empty-index ::hitchhiker-tree [_ _]
   (dih/empty-tree))
 
-(defmethod empty-index ::large-hitchhiker-tree [_ _]
-  (dih/large-empty-tree))
-
 (defmethod empty-index ::persistent-set [_ index-type]
   (dip/empty-set index-type))
 
