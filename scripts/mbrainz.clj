@@ -386,3 +386,51 @@
           (reset! current i)
           (time (transact* (get mbrainz-txns t)))
           (recur (rest items)))))))
+
+; Elapsed time: 1897512.296147 msecs
+
+(d/q '[:find ?id ?type ?gender
+       :in $ ?name
+       :where
+       [?e :artist/name ?name]
+       [?e :artist/gid ?id]
+       [?e :artist/type ?type]
+       [?e :artist/gender ?gender]]
+     (d/db conn) "Janis Joplin")
+
+(d/q '[:find ?title
+       :in $ ?artist-name
+       :where
+       [?t :track/artists ?a]
+       [?a :artist/name ?artist-name]
+       [?t :track/name ?title]]
+     (d/db conn) "John Lennon")
+
+; this one returns no items, not sure why
+(d/q '[:find ?title ?album ?year
+       :in $ ?artist-name
+       :where
+       [?m :medium/tracks ?t]
+       [?t :track/artists ?a]
+       [?a :artist/name   ?artist-name]
+       [?t :track/name    ?title]
+       [?r :release/media ?m]
+       [?r :release/name  ?album]
+       [?r :release/year  ?year]]
+     (d/db conn) "John Lennon")
+
+(d/q '[:find ?aname ?tname
+       :in $ ?artist-name
+       :where
+       [?a :artist/name ?artist-name]
+       [?t :track/artists ?a]
+       [?t :track/name ?tname]
+       [(!= "Outro" ?tname)]
+       [(!= "[outro]" ?tname)]
+       [(!= "Intro" ?tname)]
+       [(!= "[intro]" ?tname)]
+       [?t2 :track/name ?tname]
+       [?t2 :track/artists ?a2]
+       [(!= ?a2 ?a)]
+       [?a2 :artist/name ?aname]]
+     (d/db conn) "Bill Withers")
