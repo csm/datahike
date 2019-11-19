@@ -89,20 +89,22 @@
   {:arglists '([index index-type])}
   (fn [index index-type & opts] index))
 
-(defmethod empty-index ::hitchhiker-tree [_ _]
-  (dih/empty-tree))
+(defmethod empty-index ::hitchhiker-tree
+  [_ _ & {:keys [config]}]
+  (dih/empty-tree config))
 
-(defmethod empty-index ::persistent-set [_ index-type]
+(defmethod empty-index ::persistent-set [_ index-type & _]
   (dip/empty-set index-type))
 
 
 (defmulti init-index
   "Initialize index with datoms"
   {:arglists '([index datoms indexed index-type])}
-  (fn [index datoms indexed index-type] index))
+  (fn [index datoms indexed index-type & opts] index))
 
-(defmethod init-index ::hitchhiker-tree [_ datoms _ index-type]
-  (dih/init-tree datoms index-type))
+(defmethod init-index ::hitchhiker-tree
+  [_ datoms _ index-type & {:keys [config]}]
+  (dih/init-tree datoms index-type config))
 
-(defmethod init-index ::persistent-set [_ datoms indexed index-type]
+(defmethod init-index ::persistent-set [_ datoms indexed index-type & _]
   (dip/init-set datoms indexed index-type))

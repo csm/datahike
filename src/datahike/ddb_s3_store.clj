@@ -1,10 +1,13 @@
 (ns datahike.ddb-s3-store
-  (:require [datahike.config :refer [uri->config*]]
+  (:require [clojure.string :as string]
+            [datahike.config :refer [uri->config*]]
+            [datahike.index.hitchhiker-tree :refer [->tree-config]]
             [datahike.store :refer [empty-store delete-store connect-store scheme->index release-store]]
+            [hitchhiker.tree :as hh]
             [hitchhiker.tree.bootstrap.konserve :as kons]
             [konserve-ddb-s3.core :as ddb-s3]
             [superv.async :as sv]
-            [clojure.string :as string])
+            [hitchhiker.tree :as tree])
   (:import [java.net URI]))
 
 (def ^:dynamic *ddb-client* nil)
@@ -51,3 +54,7 @@
 (defmethod scheme->index :ddb+s3
   [_]
   :datahike.index/hitchhiker-tree)
+
+; Use a much larger tree size for ddb+s3.
+(defmethod ->tree-config :ddb+s3
+  (tree/->Config 128 (* 128 128) 512))

@@ -34,6 +34,12 @@
 (def ^:const br 300) ;; TODO name better, total node size; maybe(!) make configurable
 (def ^:const br-sqrt (long (Math/sqrt br))) ;; branching factor
 
+(defmulti ->tree-config (comp :backend :storage))
+
+(defmethod ->tree-config :default
+  [_]
+  (tree/->Config br-sqrt br (- br br-sqrt)))
+
 (defn- index-type->datom-fn [index-type]
   (case index-type
     :aevt (fn [a e v tx] (dd/datom e a v tx true))
@@ -108,20 +114,23 @@
 
 (defn empty-tree
   "Create empty hichthiker tree"
-  []
-  (async/<?? (tree/b-tree (tree/->Config br-sqrt br (- br br-sqrt)))))
+  [config]
+  (async/<?? (tree/b-tree (->tree-config config))))
 
 (defn -insert [tree ^Datom datom index-type]
-  (hmsg/insert tree (datom->node datom index-type) nil))
+  (let [result (async/<?? (hmsg/insert tree (datom->node datom index-type) nil))]
+    (if (tree/index-node? result)
+      result
+      (tree/index-node [result] [] (:cfg result)))))
 
 (defn init-tree
   "Create tree with datoms"
-  [datoms index-type]
+  [datoms index-type config]
   (async/<??
    (async/reduce<
     (fn [tree datom]
       (-insert tree datom index-type))
-    (empty-tree)
+    (empty-tree config)
     (seq datoms))))
 
 (defn -remove [tree ^Datom datom index-type]

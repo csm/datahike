@@ -4,13 +4,19 @@
             [datahike.index :as di]
             [datahike.store :as ds]
             [hitchhiker.tree.bootstrap.konserve :as kons]
+            [hitchhiker.tree.tracing-gc :as gc]
+            [hitchhiker.tree.tracing-gc.konserve :as gck]
             [konserve.core :as k]
             [konserve.cache :as kc]
+            [konserve.protocols :as kp]
             [superv.async :refer [<?? S]]
             [datahike.config :as dc]
             [clojure.spec.alpha :as s]
-            [clojure.core.cache :as cache])
-  (:import [java.net URI]))
+            [clojure.core.cache :as cache]
+            [konserve.memory :as mem]
+            [clojure.core.async :as async])
+  (:import [java.net URI]
+           [java.util.concurrent TimeUnit]))
 
 (s/def ::connection #(instance? clojure.lang.Atom %))
 
@@ -137,47 +143,68 @@
               :store store))))
 
   (-create-database [store-config
-                    {:keys [initial-tx schema-on-read temporal-index]
-                     :or {schema-on-read false temporal-index true}
-                     :as opt-config}]
-  (dc/validate-config store-config)
-  (dc/validate-config-attribute :datahike.config/schema-on-read schema-on-read opt-config)
-  (dc/validate-config-attribute :datahike.config/temporal-index temporal-index opt-config)
-  (let [store (kc/ensure-cache
-               (ds/empty-store store-config)
-               (atom (cache/lru-cache-factory {} :threshold 1000)))
-        stored-db (<?? S (k/get-in store [:db]))
-        _ (when stored-db
-            (throw (ex-info "Database already exists." {:type :db-already-exists :config store-config})))
-        db-config {:schema-on-read schema-on-read
-                   :temporal-index temporal-index
-                   :storage store-config}
-        {:keys [eavt aevt avet temporal-eavt temporal-aevt temporal-avet schema rschema config max-tx]}
-        (db/empty-db
-         {:db/ident {:db/unique :db.unique/identity}}
-         (ds/scheme->index store-config)
-         :config db-config)
-        backend (kons/->KonserveBackend store)]
-    (<?? S (k/assoc-in store [:db]
-                       (merge {:schema   schema
-                               :max-tx max-tx
-                               :rschema  rschema
-                               :config   db-config
-                               :eavt-key (di/-flush eavt backend)
-                               :aevt-key (di/-flush aevt backend)
-                               :avet-key (di/-flush avet backend)}
-                              (when temporal-index
-                                {:temporal-eavt-key (di/-flush temporal-eavt backend)
-                                 :temporal-aevt-key (di/-flush temporal-aevt backend)
-                                 :temporal-avet-key (di/-flush temporal-avet backend)}))))
-    (ds/release-store store-config store)
-    (when initial-tx
-      (let [conn (connect store-config)]
-        (transact conn initial-tx)
-        (release conn)))))
+                     {:keys [initial-tx schema-on-read temporal-index]
+                      :or {schema-on-read false temporal-index true}
+                      :as opt-config}]
+    (dc/validate-config store-config)
+    (dc/validate-config-attribute :datahike.config/schema-on-read schema-on-read opt-config)
+    (dc/validate-config-attribute :datahike.config/temporal-index temporal-index opt-config)
+    (let [store (kc/ensure-cache
+                 (ds/empty-store store-config)
+                 (atom (cache/lru-cache-factory {} :threshold 1000)))
+          stored-db (<?? S (k/get-in store [:db]))
+          _ (when stored-db
+              (throw (ex-info "Database already exists." {:type :db-already-exists :config store-config})))
+          db-config {:schema-on-read schema-on-read
+                     :temporal-index temporal-index
+                     :storage store-config}
+          {:keys [eavt aevt avet temporal-eavt temporal-aevt temporal-avet schema rschema config max-tx]}
+          (db/empty-db
+           {:db/ident {:db/unique :db.unique/identity}}
+           (ds/scheme->index store-config)
+           :config db-config)
+          backend (kons/->KonserveBackend store)]
+      (<?? S (k/assoc-in store [:db]
+                         (merge {:schema   schema
+                                 :max-tx max-tx
+                                 :rschema  rschema
+                                 :config   db-config
+                                 :eavt-key (di/-flush eavt backend)
+                                 :aevt-key (di/-flush aevt backend)
+                                 :avet-key (di/-flush avet backend)}
+                                (when temporal-index
+                                  {:temporal-eavt-key (di/-flush temporal-eavt backend)
+                                   :temporal-aevt-key (di/-flush temporal-aevt backend)
+                                   :temporal-avet-key (di/-flush temporal-avet backend)}))))
+      (ds/release-store store-config store)
+      (when initial-tx
+        (let [conn (connect store-config)]
+          (transact conn initial-tx)
+          (release conn)))))
 
   (delete-database [config]
     (ds/delete-store config)))
 
 (defn create-database [config & opts]
   (-create-database config opts))
+
+(defn gc-storage
+  [connection]
+  (let [conn @connection
+        store (:store conn)
+        roots [(:eavt-key conn)
+               (:aevt-key conn)
+               (:avet-key conn)
+               (:temporal-eavt-key conn)
+               (:temporal-aevt-key conn)
+               (:temporal-avet-key conn)]
+        epoch (- (System/currentTimeMillis) (.convert TimeUnit/MILLISECONDS 5 TimeUnit/MINUTES))
+        scratch (gck/->KonserveGCScratch (<?? S (mem/new-mem-store)) (format "%016x" epoch))
+        ret (promise)]
+    (when-not (satisfies? kp/PKeyIterable store)
+      (throw (IllegalArgumentException. "store must satisfy konserve.protocols/PKeyIterable")))
+    (async/take!
+      (gc/trace-gc! scratch roots (k/keys store)
+                    (fn [k] (k/dissoc store k)))
+      (fn [result] (deliver ret result)))
+    ret))

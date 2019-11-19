@@ -6,14 +6,15 @@
 
   :dependencies [[org.clojure/clojure       "1.10.1"   :scope "provided"]
                  [org.clojure/clojurescript "1.10.520" :scope "provided"]
-                 [org.clojars.mihaelkonjevic/konserve-pg "0.1.2" :scope "provided"]
+                 [org.clojars.mihaelkonjevic/konserve-pg "0.1.2" :scope "provided"
+                  :exclusions [io.replikativ/konserve]]
                  [persistent-sorted-set     "0.1.2"]
                  [org.clojure/tools.reader "1.3.2"]
                  [io.replikativ/hitchhiker-tree "0.1.5-SNAPSHOT"]
                  [io.replikativ/superv.async "0.2.9"]
                  [io.replikativ/konserve-leveldb "0.1.2" :scope "provided"]
                  [io.lambdaforge/datalog-parser "0.1.0"]
-                 [com.github.csm/konserve-ddb-s3 "0.1.1" :scope "provided"]]
+                 [com.github.csm/konserve-ddb-s3 "0.1.2-SNAPSHOT" :scope "provided"]]
 
   :plugins [[lein-cljsbuild "1.1.7"]]
 

@@ -695,16 +695,16 @@
      {:schema  (merge schema (when (:schema-on-read config) implicit-schema))
       :rschema (rschema (merge implicit-schema schema))
       :config  config
-      :eavt    (di/empty-index index :eavt)
-      :aevt    (di/empty-index index :aevt)
-      :avet    (di/empty-index index :avet)
+      :eavt    (di/empty-index index :eavt :config config)
+      :aevt    (di/empty-index index :aevt :config config)
+      :avet    (di/empty-index index :avet :config config)
       :max-eid e0
       :max-tx  tx0
       :hash    0}
      (when (:temporal-index config)
-       {:temporal-eavt (di/empty-index index :eavt)
-        :temporal-aevt (di/empty-index index :aevt)
-        :temporal-avet (di/empty-index index :avet)})))))
+       {:temporal-eavt (di/empty-index index :eavt :config config)
+        :temporal-aevt (di/empty-index index :aevt :config config)
+        :temporal-avet (di/empty-index index :avet :config config)})))))
 
 (defn init-max-eid [eavt]
   ;; solved with reserse slice first in datascript

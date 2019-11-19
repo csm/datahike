@@ -483,3 +483,10 @@
   (if (db/-temporal-index? db)
     (SinceDB. db (if (date? date) date (java.util.Date. ^long date)))
     (throw (ex-info "since is only allowed on temporal indexed databases." {:config (db/-config db)}))))
+
+(def ^{:arglists '([connection])
+       :doc "Begins a garbage-collection cycle on the given connection.
+  Will asynchronously scan storage for unused nodes, and delete them.
+
+  Returns a promise that will yield when the GC cycle is completed."}
+  gc-storage dc/gc-storage)
